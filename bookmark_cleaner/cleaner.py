@@ -1,6 +1,7 @@
 import numpy as np
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from tqdm import tqdm  # type:ignore
 
 from bookmark_cleaner import api, cluster, generate, summarize, url, utils
 
@@ -28,17 +29,19 @@ class Cleaner:
         self.urls = urls
         self.num_folders = num_folders
 
-    def cleanse(self) -> list[OrganizedURL]:
+    def cleanse(self, debug=True) -> list[OrganizedURL]:
         # read documents from urls
         data = utils.crawl_urls(self.urls)
 
         # summarize & naming it
         urls: list[URL] = []
-        for idx, doc in enumerate(data):
+        for idx, doc in (
+            tqdm(enumerate(data), total=len(data)) if debug else enumerate(data)
+        ):
             summarized = summarize.summarize_long_document(
                 utils.split_text_with_token_length(
                     txt=doc,
-                    token_length=8000,
+                    token_length=4000,
                 ),
                 head=1,
             )
@@ -81,5 +84,5 @@ class Cleaner:
 
 
 if __name__ == "__main__":
-    result = Cleaner(urls=url.urls[:10]).cleanse()
+    result = Cleaner(urls=url.files[:]).cleanse()
     print(result[0].model_dump())

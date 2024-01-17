@@ -1,5 +1,6 @@
 import tiktoken
 from langchain_community.document_loaders import WebBaseLoader
+from tqdm import tqdm
 
 from bookmark_cleaner import constant
 
@@ -23,7 +24,24 @@ def get_token_length(txt: str) -> int:
     return len(enc.encode(txt))
 
 
-def crawl_urls(urls: list[str]) -> list[str]:
-    loader = WebBaseLoader(urls)
+def crawl_urls(data: list[str]) -> list[str]:
+    urls = [d for d in data if not d.endswith(".pdf")]
+    fnames = [d for d in data if d.endswith(".pdf")]
+
+    return [
+        doc.page_content.replace("\n", "")
+        for doc in WebBaseLoader(urls, continue_on_failure=True).load()
+    ] + [crawl_pdf(file) for file in tqdm(fnames)]
+
+
+def crawl_pdf(fname: str) -> str:
+    from langchain_community.document_loaders import PyPDFLoader
+
+    loader = PyPDFLoader(fname)
     docs = loader.load()
-    return [doc.page_content.replace("\n", "") for doc in docs]
+    result = ""
+    for doc in docs:
+        result += doc.page_content.replace("\n", "")
+    return result
+    return result
+    return result
